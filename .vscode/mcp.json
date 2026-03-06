@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"c8y-codex": {
+			"url": "https://c8y-codex-mcp.schplitt.workers.dev/mcp",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}

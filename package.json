@@ -1,0 +1,53 @@
+{
+  "name": "realtime-globe",
+  "version": "1023.53.0",
+  "private": true,
+  "type": "module",
+  "description": "A Cumulocity dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime.",
+  "keywords": ["cumulocity", "widget", "globe", "realtime", "measurements", "3d"],
+  "license": "Apache-2.0",
+  "author": "schplitt",
+  "homepage": "https://github.com/schplitt/realtime-globe#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/schplitt/realtime-globe"
+  },
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix"
+  },
+  "dependencies": {
+    "@angular/cdk": "^20.2.14",
+    "@angular/common": "^20.3.0",
+    "@angular/compiler": "^20.3.0",
+    "@angular/core": "^20.3.0",
+    "@angular/forms": "^20.3.0",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/router": "^20.3.0",
+    "@c8y/bootstrap": "1023.53.0",
+    "@c8y/client": "1023.53.0",
+    "@c8y/ngx-components": "1023.53.0",
+    "@c8y/style": "1023.53.0",
+    "@event-globe/ts": "^1.0.1",
+    "monaco-editor": "~0.53.0",
+    "ngx-bootstrap": "20.0.2",
+    "rxjs": "7.8.2",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.18",
+    "@angular/cli": "^20.3.18",
+    "@angular/compiler-cli": "^20.3.0",
+    "@c8y/devkit": "1023.53.0",
+    "@c8y/options": "1023.53.0",
+    "@schplitt/eslint-config": "^1.3.1",
+    "eslint": "^10.0.2",
+    "typescript": "~5.9.2"
+  }
+}
