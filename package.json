@@ -3,6 +3,7 @@
   "version": "1023.53.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.30.3",
   "description": "A Cumulocity dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime.",
   "keywords": ["cumulocity", "widget", "globe", "realtime", "measurements", "3d"],
   "license": "Apache-2.0",
