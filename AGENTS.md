@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**realtime-globe** is a Cumulocity IoT dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime. Each measurement fires an animated arc and ring at the device's geographic position. A live notification feed is shown in the top-left corner. All accent colours derive from the tenant's CSS custom property overrides, with sensible dark-mode defaults.
+**realtime-globe** is a Cumulocity IoT dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime. The initial milestone renders an animated ripple at the emitting device's geographic position. A live notification feed is shown in the top-left corner. All accent colours derive from the tenant's CSS custom property overrides, with sensible dark-mode defaults.
 
 **Repository:** <https://github.com/schplitt/realtime-globe>
 
@@ -15,7 +15,7 @@ src/
   app/
     widget/
       globe-widget.component.ts      # Globe widget view (signals, standalone)
-      globe-widget-config.component.ts  # Config UI (source picker, arc origin)
+      globe-widget-config.component.ts  # Config UI (source picker, dashboard-context toggle)
     app.config.ts                    # App + providers
     app.ts / app.html                # Shell app
     globe-widget.model.ts            # GlobeWidgetConfig, NotificationEntry, MeasurementSeries
@@ -112,6 +112,8 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
   - The **live preview** requires a `BehaviorSubject<GlobeWidgetConfig>` + `async` pipe feeding a `<ng-template #preview>` that is registered with `WidgetConfigService.setPreview()` via `@ViewChild`. This is the only documented framework pattern and is a forced RxJS usage.
   - The config component connects to the parent dashboard form via `viewProviders: [{ provide: ControlContainer, useExisting: NgForm }]` and registers its `FormGroup` with `this.form.form.addControl('widgetConfig', this.formGroup)` in `ngOnInit`.
   - **View component** is unaffected — it correctly uses signal `input<GlobeWidgetConfig>()`.
+
+- **Current product direction: built-in target selection, runtime device-position lookup.** Do not add arc-origin inputs or a custom target override to the widget config. The dashboard framework provides the selected device/group target to the widget config, and the custom config component should stay slim. Device positions are resolved in the widget when measurements arrive and cached for a bounded TTL. Destination-based arc rendering is deferred; the first visual milestone is a ripple at the emitting device.
 
 - **Styling: utility classes first, inline styles second, never new CSS files.** Always reach for the built-in Cumulocity/Bootstrap utility classes first (spacing, flex, typography, colours). If a specific style is not available as a utility class, use an inline `style` attribute directly on the element. **Never create new `.css` files.** The existing `globe-widget.component.css` is kept only for Angular's component registration and must remain empty.
 
