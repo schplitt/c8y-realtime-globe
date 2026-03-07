@@ -1,0 +1,18 @@
+
+catalogMode: prefer
+
+shellEmulator: true
+
+
+trustPolicy: no-downgrade
+
+overrides:
+  typescript: 5.8.2
+
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild
+  - lmdb
+  - msgpackr-extract
+
