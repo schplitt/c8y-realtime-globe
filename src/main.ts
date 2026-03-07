@@ -1,3 +1,5 @@
+/* eslint-disable eslint-comments/no-unlimited-disable */
+/* eslint-disable */
 import './i18n'
 
 const barHolder: HTMLElement | null = document.querySelector('body > .init-load')
@@ -10,7 +12,7 @@ async function applicationSetup() {
   const loadBootstrapModule = () =>
     import(
       /* webpackPreload: true */
-      './bootstrap',
+      './bootstrap'
     )
 
   loadMetaDataAndPerformBootstrap(loadBootstrapModule).then(removeProgress)
