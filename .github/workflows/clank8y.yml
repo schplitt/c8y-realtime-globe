@@ -16,7 +16,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: clank8y/clank8y@v1.0.0 # pin to a specific commit SHA instead of a tag
+      - uses: clank8y/clank8y@8dedc01fd6c7e66f2a4696382055bf7607adfd57
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         with:
