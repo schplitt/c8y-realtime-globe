@@ -29,8 +29,7 @@
               }
             ],
             "styles": [
-              "@c8y/style/main.less",
-              "src/styles.less"
+              "@c8y/style/main.less"
             ],
             "aot": false,
             "main": "src/main.ts",
@@ -99,7 +98,6 @@
               }
             ],
             "styles": [
-              "src/styles.less"
             ]
           }
         },

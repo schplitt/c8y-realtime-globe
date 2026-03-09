@@ -3,8 +3,16 @@
   "version": "1023.53.0",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.31.0",
   "description": "A Cumulocity dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime.",
-  "keywords": ["cumulocity", "widget", "globe", "realtime", "measurements", "3d"],
+  "keywords": [
+    "cumulocity",
+    "widget",
+    "globe",
+    "realtime",
+    "measurements",
+    "3d"
+  ],
   "license": "Apache-2.0",
   "author": "schplitt",
   "homepage": "https://github.com/schplitt/realtime-globe#readme",
@@ -14,7 +22,7 @@
   },
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve -u https://hockjakob.eu-latest.cumulocity.com/ --shell cockpit",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
@@ -33,7 +41,7 @@
     "@c8y/client": "1023.53.0",
     "@c8y/ngx-components": "1023.53.0",
     "@c8y/style": "1023.53.0",
-    "@event-globe/ts": "^1.0.1",
+    "@event-globe/ts": "^1.1.0",
     "monaco-editor": "~0.53.0",
     "ngx-bootstrap": "20.0.2",
     "rxjs": "7.8.2",
@@ -48,6 +56,6 @@
     "@c8y/options": "1023.53.0",
     "@schplitt/eslint-config": "^1.3.1",
     "eslint": "^10.0.2",
-    "typescript": "~5.9.2"
+    "typescript": "5.8.2"
   }
 }

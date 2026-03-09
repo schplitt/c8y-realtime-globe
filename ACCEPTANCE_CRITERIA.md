@@ -8,10 +8,10 @@
 ## 1. Overview
 
 A Cumulocity dashboard widget that renders a 3D interactive globe and visualises
-incoming measurements in realtime. Each measurement fires an animated arc + ring
-at the device's geographic position. A live notification feed is shown in the
-top-left corner. All accent colours derive from the tenant's CSS custom property
-overrides (branding), with sensible dark-mode defaults baked in.
+incoming measurements in realtime. The initial milestone renders an animated
+ripple at the emitting device's geographic position. A live notification feed is
+shown in the top-left corner. All accent colours derive from the tenant's CSS
+custom property overrides (branding), with sensible dark-mode defaults baked in.
 
 ---
 
@@ -34,25 +34,22 @@ overrides (branding), with sensible dark-mode defaults baked in.
 
 ---
 
-### 2.2 Context / Source Selection
+### 2.2 Context / Target Selection
 
-- [ ] **AC-06** The **config** has a `source` field that holds either:
-     - a single **device** (picked via `c8y-asset-selector` or equivalent), or
-     - a single **group** (same picker, type filter set to group).
-- [ ] **AC-07** When the source is a **device**, realtime measurements are
+- [ ] **AC-06** The widget uses the built-in Cumulocity widget target selection.
+      The selected target injected into the widget config may be either a single
+      **device** or a single **group**.
+- [ ] **AC-07** When the selected target is a **device**, realtime measurements are
       subscribed for that device's ID only.
-- [ ] **AC-08** When the source is a **group**, all **direct and recursive child
+- [ ] **AC-08** When the selected target is a **group**, all **direct and recursive child
       devices** are fetched via `InventoryService` (using
       `childAssets` / `withChildren` paging) and realtime subscriptions are opened
       for each device that has a valid `c8y_Position`.
-- [ ] **AC-09** The config has a boolean `useDashboardContext` flag. When
-      `true`, the widget reads the device or group from the **context dashboard
-      framework** at runtime (via the injected context object) and ignores any
-      stored `source`. This is the default when the widget is first added to a
-      device/group context dashboard.
-- [ ] **AC-10** When the widget config changes (different source selected, or
-      `useDashboardContext` toggled), all existing subscriptions are torn down
-      and new ones are started.
+- [ ] **AC-09** On a context dashboard, the dashboard framework provides the
+      current device or group target to the widget. The widget always uses that
+      injected target rather than a custom override flag.
+- [ ] **AC-10** When the injected widget config changes, the widget tears down
+      existing subscriptions and starts new ones based on the updated target.
 
 ---
 
@@ -64,9 +61,11 @@ overrides (branding), with sensible dark-mode defaults baked in.
       `WritableSignal<IManagedObject[]>` and surfaced in the widget UI as a
       dismissable info bar: _"X device(s) have no position and cannot be
       visualised"_, with an expandable list of device names/IDs. No error is
-      thrown; no arc is rendered for these devices.
-- [ ] **AC-13** Device position is read once at subscription setup from
-      `InventoryService.detail(id)`. No live position tracking in this version.
+      thrown; no ripple is rendered for these devices.
+- [ ] **AC-13** Device position is resolved in the widget from
+      `InventoryService.detail(id)` when a device first emits a measurement (or
+      when its cached position expires). No live position tracking in this
+      version.
 
 ---
 
@@ -82,9 +81,8 @@ overrides (branding), with sensible dark-mode defaults baked in.
       of silence the accumulated batch is processed together, so burst-released
       realtime buffers are coalesced.
 - [ ] **AC-18** Each processed measurement fires:
-     1. `renderer.addArc(...)` — arc originates from the **configured arc origin
-        point** (see AC-39/AC-40) and ends at the device's `lat`/`lng`.
-        Arc colour = hexagon colour (`--c8y-palette-yellow-60`).
+     1. A ripple / ring animation at the device's `lat`/`lng` position on the
+        globe using the default accent colour (`--c8y-palette-yellow-60`).
      2. A notification entry added to the **notification queue signal**.
 
 ---
@@ -156,28 +154,27 @@ so that tenant branding overrides take effect automatically.
       emissive gray colour.
 - [ ] **AC-31** Auto-rotation is enabled by default; manual orbit is also
       enabled.
-- [ ] **AC-32** Arcs use `showEndRing: true` (pulse at device location) and
-      `flyingSegment: true` for a clean animated sweep.
+- [ ] **AC-32** The initial visual milestone renders a pulse / ring at the
+      device location. Destination-based arc rendering is deferred until the
+      destination UX is finalised.
 
 ---
 
 ### 2.8 Widget Config UI
 
 - [ ] **AC-33** Config component exposes:
-     - **Source** — `c8y-asset-selector` single-select picker (devices and groups).
-       A "Use dashboard context" toggle sits above it; when active the picker is
-       hidden and the source resolves from the context dashboard at runtime.
-     - **Arc origin** — lat/lng input pair (degrees). Prepopulated automatically
-       when a source with a `c8y_Position` is selected (see AC-39). User can
-       override manually.
+     - No custom target selector. The dashboard framework's built-in target
+       selector is used outside the custom config component.
 - [ ] **AC-34** Config is stored as a serialisable `GlobeWidgetConfig` interface
       in the widget's config object (no live objects / class instances stored).
 - [ ] **AC-35** Config component provides a live preview area (uses
-      `SamplePluginComponent` pattern or a simple `<c8y-realtime-globe>` preview).
+      `SamplePluginComponent` pattern or a simple `<c8y-realtime-globe>` preview)
+      and reacts to injected config changes while the editor is open.
 
 > There are **no measurement fragment/series filters** in the config. Subscriptions
 > are scoped purely by device ID; all measurement types from subscribed devices
-> are visualised.
+> are visualised. A configurable measurement destination is explicitly out of
+> scope until the UX is defined.
 
 ### 2.11 Live / Realtime Toggle
 
@@ -196,32 +193,28 @@ so that tenant branding overrides take effect automatically.
 
 ### 2.9 Performance & Limits
 
-- [ ] **AC-36** Maximum simultaneous active arcs on the globe: **50**. If more
-      arrive, the oldest arc is removed before adding the new one (FIFO ring buffer
-      on arc IDs tracked in a signal).
+- [ ] **AC-36** Maximum simultaneous active ripple / pulse effects on the globe:
+      **50**. If more arrive, the oldest effect is removed before adding the new
+      one (FIFO ring buffer on effect IDs tracked in a signal).
 - [ ] **AC-37** Maximum device subscriptions: **200**. If a group contains more
       than 200 devices with position, a warning notification is shown in the UI and
       only the first 200 are subscribed.
 - [ ] **AC-38** Device inventory page size for child fetching: **100** (paged
       with `promises` / `rxjs` chain, not `while(true)`).
 
-### 2.10 Arc Origin
+### 2.10 Device Position Cache & Destination
 
-- [ ] **AC-39** When the user selects a **source** in the config, the widget
-      attempts to read that asset's / group's own `c8y_Position` from the
-      inventory. If found, `arcOrigin` in the config is auto-populated with that
-      `lat`/`lng` and the label is set to the asset name.
-- [ ] **AC-40** If no `c8y_Position` exists on the source asset (or the user
-      selects a standalone device), `arcOrigin` defaults to `{ lat: 0, lng: 0 }`
-      and the user can manually adjust it in the config.
-- [ ] **AC-41** The arc origin lat/lng are editable number inputs in the config UI
-      with validation (lat: −90…90, lng: −180…180).
-- [ ] **AC-42** `arcOrigin` is stored in `GlobeWidgetConfig` as plain numbers;
-      the displayed label (asset name) is derived at runtime, never stored.
-
-> **TBD:** For complex multi-site hierarchies the "smart" origin (parent asset
-> position) may need further UX design. For v1, auto-populate from source asset
-> position + manual override covers the core use case.
+- [ ] **AC-39** When a measurement is processed, the widget loads the emitting
+      device's `c8y_Position` from inventory on first use and stores it in an
+      in-memory cache keyed by device ID.
+- [ ] **AC-40** Cached positions expire after a bounded TTL so repeated
+      measurements do not trigger an inventory lookup for every message while
+      still allowing eventual position refresh.
+- [ ] **AC-41** If a device has no valid `c8y_Position`, no ripple is rendered
+      for that measurement and the device remains listed in the no-position UI.
+- [ ] **AC-42** `GlobeWidgetConfig` does not store an arc origin or destination
+      in the initial milestone. Destination-based rendering remains a product
+      design follow-up.
 
 ---
 
@@ -229,15 +222,12 @@ so that tenant branding overrides take effect automatically.
 
 ```ts
 interface GlobeWidgetConfig {
-  useDashboardContext?: boolean // default true
-  source?: {
+      device?: {
     id: string
     name: string
-    type: 'device' | 'group'
-  }
-  arcOrigin?: {
-    lat: number // -90 to 90, default 0
-    lng: number // -180 to 180, default 0
+            c8y_IsDevice?: Record<string, never>
+            c8y_IsDeviceGroup?: Record<string, never>
+            c8y_IsDynamicGroup?: Record<string, never>
   }
 }
 
@@ -313,9 +303,9 @@ function addArcBounded(options: ArcOptions) {
 | Phase  | Scope                                                                                          | Status        |
 | ------ | ---------------------------------------------------------------------------------------------- | ------------- |
 | **P1** | Widget skeleton (hookWidget, empty globe, colour theming, no fog)                              | ☐ not started |
-| **P2** | Config component: source picker + dashboard-context toggle + arc origin (auto + manual)        | ☐ not started |
+| **P2** | Config component: source picker + dashboard-context toggle                                     | ☐ not started |
 | **P3** | Inventory service: resolve devices + positions; no-position info panel                         | ☐ not started |
-| **P4** | Realtime subscriptions + arc rendering (origin → device lat/lng) + `c8y-realtime-btn` in view  | ☐ not started |
+| **P4** | Realtime subscriptions + device-position cache + ripple rendering + `c8y-realtime-btn` in view | ☐ not started |
 | **P5** | Notification feed (queue, 300 ms debounce, push-down animation, device link, auto-dismiss 4 s) | ☐ not started |
 | **P6** | Arc ring buffer + subscription cap (AC-36, AC-37)                                              | ☐ not started |
 | **P7** | Polish, cleanup, tests, docs update                                                            | ☐ not started |
@@ -324,14 +314,14 @@ function addArcBounded(options: ArcOptions) {
 
 ## 6. Resolved Decisions
 
-| #   | Question                      | Decision                                                                                                                                                                                                                                       |
-| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Arc origin point**          | Configurable lat/lng in widget config. Auto-populated from source asset's `c8y_Position` if available; falls back to `[0, 0]`. User can always override manually. Multi-site UX TBD beyond v1.                                                 |
-| 2   | **Measurement filter**        | **No filter.** Subscriptions are scoped by device ID only; all measurement types from subscribed devices are shown.                                                                                                                            |
-| 3   | **Devices without position**  | Tracked in a signal; surfaced as a dismissable info bar inside the widget with count + expandable device list. Not silently ignored.                                                                                                           |
-| 4   | **Fog**                       | **Disabled** in v1. Secondary brand green (`--c8y-palette-green-40: #119d11`) is noted as a future fog-tint option.                                                                                                                            |
-| 5   | **Notification scope**        | `position: absolute` inside the widget container only — no CDK overlay, no page-level side effects.                                                                                                                                            |
-| 6   | **Notification card content** | Device name (as link to device dashboard) + all series from the measurement (`seriesName: value unit`). No separate timestamp line shown.                                                                                                      |
-| 7   | **Notification card stack**   | New card fades in at top, pushes others down. No hard cap — 4 s auto-dismiss bounds visible count naturally. CSS transitions only (no Angular `@trigger`).                                                                                     |
-| 8   | **Dashboard context**         | Widget has a `useDashboardContext` flag (default `true`). When on a device/group context dashboard the source is taken from the framework context; picker is hidden. User can override by toggling off and selecting an explicit device/group. |
-| 9   | **Realtime button**           | `c8y-realtime-btn` rendered in the **widget view** (not config). Service starts automatically on init. Pausing stops processing; no backlog is queued while paused.                                                                            |
+| #   | Question                      | Decision                                                                                                                                                                                                           |
+| --- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Measurement destination**   | No arc-origin or destination is configured in the initial milestone. The widget starts by rendering a ripple at the emitting device position. Destination-based arc rendering is deferred until the UX is defined. |
+| 2   | **Measurement filter**        | **No filter.** Subscriptions are scoped by device ID only; all measurement types from subscribed devices are shown.                                                                                                |
+| 3   | **Devices without position**  | Tracked in a signal; surfaced as a dismissable info bar inside the widget with count + expandable device list. Not silently ignored.                                                                               |
+| 4   | **Fog**                       | **Disabled** in v1. Secondary brand green (`--c8y-palette-green-40: #119d11`) is noted as a future fog-tint option.                                                                                                |
+| 5   | **Notification scope**        | `position: absolute` inside the widget container only — no CDK overlay, no page-level side effects.                                                                                                                |
+| 6   | **Notification card content** | Device name (as link to device dashboard) + all series from the measurement (`seriesName: value unit`). No separate timestamp line shown.                                                                          |
+| 7   | **Notification card stack**   | New card fades in at top, pushes others down. No hard cap — 4 s auto-dismiss bounds visible count naturally. CSS transitions only (no Angular `@trigger`).                                                         |
+| 8   | **Dashboard context**         | Widget always uses the target injected by the dashboard framework. There is no custom `useDashboardContext` toggle or target override in the custom config component.                                              |
+| 9   | **Realtime button**           | `c8y-realtime-btn` rendered in the **widget view** (not config). Service starts automatically on init. Pausing stops processing; no backlog is queued while paused.                                                |

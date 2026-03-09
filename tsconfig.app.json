@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noImplicitOverride": false,
-    "strict": false,
+    "strict": true,
     "outDir": "./out-tsc/app",
     "skipLibCheck": true
   },
