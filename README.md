@@ -1,19 +1,31 @@
 # realtime-globe
 
-A Cumulocity IoT dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime. Each measurement fires an animated arc and ring at the device's geographic position. A live notification feed is shown in the top-left corner of the widget. All accent colours derive from the tenant's CSS custom property overrides (branding), with sensible dark-mode defaults.
+A Cumulocity IoT dashboard widget for rendering an interactive 3D globe with tenant-themed defaults. The current milestone focuses on a minimal globe renderer plus a preview-first widget config for appearance tuning.
 
-## Features
+## Current capabilities
 
-- 3D interactive globe with hexagonal land polygons, atmosphere glow, and auto-rotation
-- Realtime measurement subscriptions for a single device or all devices in a group (recursive)
-- Animated arcs from a configurable origin point to each device's geographic position
-- Pulse rings at device locations on each measurement
-- Live notification feed (top-left corner) — device name links to the device dashboard, shows all measurement series, fades in/out with 200 ms CSS transitions, auto-dismisses after 4 s
-- Burst debounce (300 ms) to coalesce rapid measurement buffers
-- Fully themed via Cumulocity CSS custom properties with dark-mode defaults
-- Dashboard context support — source resolves from the context dashboard automatically
-- Realtime toggle button in the widget view (start/stop without entering edit mode)
-- Dismissable info bar listing devices that have no `c8y_Position` and cannot be visualised
+- Renderer-backed standalone globe view using `@event-globe/ts`
+- Preview mode that emits sample ripple events so the config preview is immediately visible
+- Appearance overrides stored in widget config while keeping tenant CSS variables as the default source of truth
+- Built-in dashboard target selection left to the Cumulocity framework instead of duplicating a custom source picker
+
+## Configurable appearance
+
+The widget config currently exposes a small set of appearance controls:
+
+- Scene background color
+- Globe surface color
+- Land polygon color
+- Ripple color
+- Auto-rotate toggle and speed
+- Ripple max scale and expansion speed
+
+Leaving a color field empty keeps the runtime tenant branding defaults:
+
+- `--c8y-palette-gray-10` for the scene background
+- `--c8y-palette-gray-30` for the globe surface
+- `--c8y-palette-gray-20` for emissive and atmosphere glow
+- `--c8y-palette-yellow-60` for land polygons and ripple events
 
 ## Development
 

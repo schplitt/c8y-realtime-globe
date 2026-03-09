@@ -14,11 +14,11 @@
 src/
   app/
     widget/
-      globe-widget.component.ts      # Globe widget view (signals, standalone)
-      globe-widget-config.component.ts  # Config UI (source picker, dashboard-context toggle)
+      globe-widget.component.ts      # Globe widget view + minimal renderer-backed preview
+      globe-widget-config.component.ts  # Preview-first config UI for appearance overrides
     app.config.ts                    # App + providers
     app.ts / app.html                # Shell app
-    globe-widget.model.ts            # GlobeWidgetConfig, NotificationEntry, MeasurementSeries
+    globe-widget.model.ts            # GlobeWidgetConfig and appearance config defaults
     index.ts                         # Exported providers (hookWidget)
     README.md                        # In-platform readme shown in plugin manager
   assets/
@@ -114,6 +114,8 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
   - **View component** is unaffected — it correctly uses signal `input<GlobeWidgetConfig>()`.
 
 - **Current product direction: built-in target selection, runtime device-position lookup.** Do not add arc-origin inputs or a custom target override to the widget config. The dashboard framework provides the selected device/group target to the widget config, and the custom config component should stay slim. Device positions are resolved in the widget when measurements arrive and cached for a bounded TTL. Destination-based arc rendering is deferred; the first visual milestone is a ripple at the emitting device.
+
+- **Current config milestone: preview-first appearance tuning only.** The custom config component should stay minimal and focus on renderer appearance overrides that are immediately visible in preview. Do not reintroduce a custom source picker or dashboard-context toggle unless the product direction changes.
 
 - **Styling: utility classes first, inline styles second, never new CSS files.** Always reach for the built-in Cumulocity/Bootstrap utility classes first (spacing, flex, typography, colours). If a specific style is not available as a utility class, use an inline `style` attribute directly on the element. **Never create new `.css` files.** The existing `globe-widget.component.css` is kept only for Angular's component registration and must remain empty.
 
