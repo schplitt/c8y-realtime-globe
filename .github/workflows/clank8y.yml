@@ -16,7 +16,7 @@ jobs:
   review:
     runs-on: ubuntu-latest
     steps:
-      - uses: clank8y/clank8y@8dedc01fd6c7e66f2a4696382055bf7607adfd57
+      - uses: clank8y/clank8y@a62df06c865ff99769f20e0027cba5ef9d187d4b
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         with:
