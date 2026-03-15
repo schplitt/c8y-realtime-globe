@@ -13,6 +13,7 @@ import { CommonModule } from '@c8y/ngx-components'
 import { WidgetConfigService } from '@c8y/ngx-components/context-dashboard'
 import { BehaviorSubject } from 'rxjs'
 import {
+  DEFAULT_MEASUREMENT_DEBOUNCE_MS,
   GLOBE_WIDGET_APPEARANCE_DEFAULTS,
   normalizeHexColor,
 } from '../globe-widget.model'
@@ -34,6 +35,7 @@ type GlobeWidgetAppearanceForm = FormGroup<{
   autoRotateSpeed: FormControl<number>
   rippleMaxScale: FormControl<number>
   rippleExpansionSpeed: FormControl<number>
+  measurementDebounceMs: FormControl<number>
 }>
 
 function stripDefaultAppearanceValues(
@@ -105,6 +107,9 @@ function createAppearanceForm(): GlobeWidgetAppearanceForm {
       GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleExpansionSpeed,
       { nonNullable: true },
     ),
+    measurementDebounceMs: new FormControl<number>(DEFAULT_MEASUREMENT_DEBOUNCE_MS, {
+      nonNullable: true,
+    }),
   })
 }
 
@@ -194,6 +199,19 @@ function createAppearanceForm(): GlobeWidgetAppearanceForm {
               min="0.01"
               max="1"
               step="0.01"
+              type="number"
+            />
+          </label>
+        </div>
+        <div class="col-xs-12 col-md-4">
+          <label class="d-flex d-col gap-4 text-medium">
+            Measurement debounce
+            <input
+              class="form-control"
+              formControlName="measurementDebounceMs"
+              min="0"
+              max="5000"
+              step="50"
               type="number"
             />
           </label>
@@ -290,6 +308,7 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
           appearance?.rippleMaxScale ?? GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleMaxScale,
         rippleExpansionSpeed:
           appearance?.rippleExpansionSpeed ?? GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleExpansionSpeed,
+        measurementDebounceMs: this.config.measurementDebounceMs ?? DEFAULT_MEASUREMENT_DEBOUNCE_MS,
       },
       { emitEvent: false },
     )
@@ -301,10 +320,12 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
 
   private buildConfig(): GlobeWidgetConfig {
     const appearance = this.buildAppearanceOverrides()
+    const formValue = this.formGroup.getRawValue()
 
     return {
       ...this.config,
       device: this.currentDevice ?? this.config.device,
+      measurementDebounceMs: formValue.measurementDebounceMs,
       ...(appearance ? { appearance } : {}),
     }
   }

@@ -44,4 +44,7 @@ export function normalizeHexColor(value: string | null | undefined): string | un
 export interface GlobeWidgetConfig {
   device?: GlobeWidgetDeviceTarget
   appearance?: GlobeWidgetAppearanceConfig
+  measurementDebounceMs?: number
 }
+
+export const DEFAULT_MEASUREMENT_DEBOUNCE_MS = 200

@@ -11,11 +11,17 @@
 ## Architecture
 
 ```
+scripts/
+  c8y-script.shared.ts               # Shared Cumulocity credentials, mock device profiles, and script constants
+  createDevices.ts                   # Standalone @c8y/client seeding script for mock child devices
+  mockMeasurements.ts                # Standalone @c8y/client measurement generator for hierarchy descendants
 src/
   app/
     widget/
-      globe-widget.component.ts      # Globe widget view + minimal renderer-backed preview
+      globe-widget.component.ts      # Globe widget view + renderer lifecycle and realtime orchestration
       globe-widget-config.component.ts  # Preview-first config UI for appearance overrides
+      globe-widget-sources.service.ts   # Runtime target resolution, inventory paging, and position filtering
+      missing-position-popover.component.ts # Floating overlay listing devices missing c8y_Position
     app.config.ts                    # App + providers
     app.ts / app.html                # Shell app
     globe-widget.model.ts            # GlobeWidgetConfig and appearance config defaults
@@ -34,6 +40,7 @@ pnpm start      # Start dev server (ng serve)
 pnpm build      # Build plugin (ng build)
 pnpm lint       # Lint with ESLint
 pnpm lint:fix   # Lint and auto-fix
+pnpm exec tsc --noEmit --module nodenext --moduleResolution nodenext scripts/c8y-script.shared.ts scripts/createDevices.ts scripts/mockMeasurements.ts
 ```
 
 ## Code Style
@@ -127,9 +134,10 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
 
 This registry tracks every `.md` file in the repo and its purpose. Never create a new markdown file without updating this table.
 
-| File                     | Purpose                                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| `AGENTS.md`              | Technical context, conventions, and guidelines for AI agents working on this project         |
-| `README.md`              | User-facing documentation shown on GitHub                                                    |
-| `ACCEPTANCE_CRITERIA.md` | Full feature requirements, data models, implementation phases, and resolved design decisions |
-| `src/app/README.md`      | In-platform readme shown in the Cumulocity plugin manager                                    |
+| File                          | Purpose                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                   | Technical context, conventions, and guidelines for AI agents working on this project         |
+| `README.md`                   | User-facing documentation shown on GitHub                                                    |
+| `ACCEPTANCE_CRITERIA.md`      | Full feature requirements, data models, implementation phases, and resolved design decisions |
+| `SESSION_MCP_WIDGET_BUILD.md` | Detailed session record of the AI-assisted widget build and Codex MCP usage                  |
+| `src/app/README.md`           | In-platform readme shown in the Cumulocity plugin manager                                    |
