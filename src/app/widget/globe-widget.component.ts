@@ -10,13 +10,15 @@ import {
   viewChild,
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import type { IManagedObject } from '@c8y/client'
+import type { IManagedObject, IMeasurement } from '@c8y/client'
 import { MeasurementRealtimeService } from '@c8y/ngx-components'
 import { EventGlobeRenderer } from '@event-globe/ts'
 import type { EventGlobeRendererConfig } from '@event-globe/ts'
 import type { Subscription } from 'rxjs'
 import {
   DEFAULT_MEASUREMENT_DEBOUNCE_MS,
+  DEFAULT_MEASUREMENT_QUEUE_SIZE,
+  DEFAULT_NOTIFICATION_CARD_TIMEOUT_MS,
   GLOBE_WIDGET_APPEARANCE_DEFAULTS,
   normalizeHexColor,
 } from '../globe-widget.model'
@@ -24,16 +26,16 @@ import type {
   GlobeWidgetAppearanceConfig,
   GlobeWidgetConfig,
   GlobeWidgetDeviceTarget,
+  NotificationEntry,
 } from '../globe-widget.model'
+import { GlobeWidgetMeasurementEventsService } from './globe-widget-measurement-events.service'
+import type { QueuedMeasurementPlaybackEvent } from './globe-widget-measurement-events.service'
+import { MeasurementNotificationFeedComponent } from './measurement-notification-feed.component'
 import { MissingPositionPopoverComponent } from './missing-position-popover.component'
 import { GlobeWidgetSourcesService } from './globe-widget-sources.service'
 import type { PositionedManagedObject } from './globe-widget-sources.service'
 
-interface QueuedRippleEvent {
-  lat: number
-  lng: number
-  color: string
-}
+const NOTIFICATION_TRANSITION_MS = 300
 
 function resolveCssVar(varName: string, fallback: string): string {
   const resolvedValue = getComputedStyle(document.documentElement).getPropertyValue(varName).trim()
@@ -62,7 +64,7 @@ function resolveThemeAppearance(): Required<GlobeWidgetAppearanceConfig> {
       '--c8y-palette-yellow-60',
       GLOBE_WIDGET_APPEARANCE_DEFAULTS.landPolygonColor,
     ),
-    rippleColor: resolveCssVar('--c8y-palette-yellow-60', GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleColor),
+    rippleColor: resolveCssVar('--c8y-brand-primary', GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleColor),
   }
 }
 
@@ -108,18 +110,20 @@ function createRendererConfig(
         </div>
       }
       @if (!preview()) {
+        <c8y-measurement-notification-feed [notifications]="notifications()" />
         <c8y-missing-position-popover [devices]="sourcesWithoutPosition()" />
       }
       <div #globeContainer style="width: 100%; height: 100%;"></div>
     </div>
   `,
   standalone: true,
-  imports: [MissingPositionPopoverComponent],
+  imports: [MeasurementNotificationFeedComponent, MissingPositionPopoverComponent],
   providers: [MeasurementRealtimeService],
 })
 export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef)
   private readonly measurementRealtime = inject(MeasurementRealtimeService)
+  private readonly measurementEvents = inject(GlobeWidgetMeasurementEventsService)
   private readonly sourcesService = inject(GlobeWidgetSourcesService)
   private readonly globeContainer = viewChild.required<ElementRef<HTMLElement>>('globeContainer')
 
@@ -128,9 +132,12 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
   private realtimeFlushTimeout: number | null = null
   private readonly sourcesWithPosition = signal<PositionedManagedObject[]>([])
   protected readonly sourcesWithoutPosition = signal<IManagedObject[]>([])
-  private readonly pendingRippleEvents = signal<QueuedRippleEvent[]>([])
+  protected readonly notifications = signal<NotificationEntry[]>([])
+  private readonly pendingMeasurementEvents = signal<QueuedMeasurementPlaybackEvent[]>([])
   private readonly realtimeSubscriptions = new Map<string, Subscription>()
+  private readonly notificationTimeouts = new Map<number, number[]>()
   private realtimeSubscriptionRenderer: EventGlobeRenderer | null = null
+  private notificationIdSequence = 0
   private readonly themeAppearance = signal<Required<GlobeWidgetAppearanceConfig>>(
     GLOBE_WIDGET_APPEARANCE_DEFAULTS,
   )
@@ -146,8 +153,16 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
     ...this.config().appearance,
   }))
 
+  private readonly measurementQueueSize = computed(
+    () => Math.max(1, this.config().measurementQueueSize ?? DEFAULT_MEASUREMENT_QUEUE_SIZE),
+  )
+
   private readonly measurementDebounceMs = computed(
     () => Math.max(0, this.config().measurementDebounceMs ?? DEFAULT_MEASUREMENT_DEBOUNCE_MS),
+  )
+
+  private readonly notificationCardTimeoutMs = computed(
+    () => Math.max(0, this.config().notificationCardTimeoutMs ?? DEFAULT_NOTIFICATION_CARD_TIMEOUT_MS),
   )
 
   constructor() {
@@ -180,6 +195,7 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
     effect((onCleanup) => {
       if (this.preview()) {
         this.clearRealtimeSubscriptions()
+        this.clearNotifications()
         this.sourcesWithPosition.set([])
         this.sourcesWithoutPosition.set([])
         return
@@ -188,6 +204,7 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
       const target = this.config().device
       let cancelled = false
 
+      this.clearNotifications()
       this.sourcesWithPosition.set([])
       this.sourcesWithoutPosition.set([])
 
@@ -201,7 +218,9 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
     effect(() => {
       const renderer = this.renderer()
       const sourcesById = this.positionedSourcesById()
+      this.measurementQueueSize()
       this.measurementDebounceMs()
+      this.notificationCardTimeoutMs()
 
       if (!renderer || this.preview()) {
         this.clearRealtimeState()
@@ -292,12 +311,13 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
       const subscription = this.measurementRealtime
         .onCreate$(sourceId)
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => {
-          this.queueRippleEvent({
-            lat: source.c8y_Position.lat,
-            lng: source.c8y_Position.lng,
-            color: this.appearance().rippleColor,
-          })
+        .subscribe((measurement: IMeasurement) => {
+          this.queueMeasurementEvent(this.measurementEvents.createPlaybackEvent(
+            source,
+            measurement,
+            this.appearance().rippleColor,
+            ++this.notificationIdSequence,
+          ))
         })
 
       this.realtimeSubscriptions.set(sourceId, subscription)
@@ -314,41 +334,54 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
     this.measurementRealtime.stop()
   }
 
-  private queueRippleEvent(event: QueuedRippleEvent): void {
-    this.pendingRippleEvents.update((events) => [...events, event])
-    this.scheduleRippleFlush()
+  private queueMeasurementEvent(event: QueuedMeasurementPlaybackEvent): void {
+    const queueSize = this.measurementQueueSize()
+
+    this.pendingMeasurementEvents.update((events) => {
+      if (events.length >= queueSize) {
+        return [...events.slice(-(queueSize - 1)), event]
+      }
+
+      return [...events, event]
+    })
+
+    this.scheduleQueuedRipplePlayback()
   }
 
-  private scheduleRippleFlush(): void {
+  private scheduleQueuedRipplePlayback(): void {
     if (this.realtimeFlushTimeout !== null) {
-      window.clearTimeout(this.realtimeFlushTimeout)
+      return
     }
 
     this.realtimeFlushTimeout = window.setTimeout(() => {
       this.realtimeFlushTimeout = null
-      this.flushQueuedRippleEvents()
+      this.playNextQueuedRipple()
     }, this.measurementDebounceMs())
   }
 
-  private flushQueuedRippleEvents(): void {
+  private playNextQueuedRipple(): void {
     const renderer = this.renderer()
-    const events = this.pendingRippleEvents()
+    const events = this.pendingMeasurementEvents()
 
     if (!renderer || this.preview() || events.length === 0) {
-      this.pendingRippleEvents.set([])
+      this.pendingMeasurementEvents.set([])
       return
     }
 
-    this.pendingRippleEvents.set([])
+    const [nextEvent, ...remainingEvents] = events
+    this.pendingMeasurementEvents.set(remainingEvents)
+    renderer.addEvent('ripple', nextEvent.ripple)
+    this.addNotification(nextEvent.notification)
 
-    for (const event of events) {
-      renderer.addEvent('ripple', event)
+    if (remainingEvents.length > 0) {
+      this.scheduleQueuedRipplePlayback()
     }
   }
 
   private clearRealtimeState(): void {
     this.clearRealtimeSubscriptions()
-    this.pendingRippleEvents.set([])
+    this.clearNotifications()
+    this.pendingMeasurementEvents.set([])
 
     if (this.realtimeFlushTimeout !== null) {
       window.clearTimeout(this.realtimeFlushTimeout)
@@ -380,5 +413,69 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
       lng: (Math.random() * 360) - 180,
       color: this.appearance().rippleColor,
     })
+  }
+
+  private addNotification(nextNotification: NotificationEntry): void {
+    const notificationId = nextNotification.id
+    const notificationLifetimeMs = this.notificationCardTimeoutMs()
+
+    this.notifications.update((notifications) => [nextNotification, ...notifications])
+
+    const revealTimeout = window.setTimeout(() => {
+      this.updateNotification(notificationId, { isVisible: true })
+    }, 16)
+
+    const dismissTimeout = window.setTimeout(() => {
+      this.updateNotification(notificationId, { isLeaving: true, isVisible: false })
+    }, notificationLifetimeMs)
+
+    const removeTimeout = window.setTimeout(() => {
+      this.removeNotification(notificationId)
+    }, notificationLifetimeMs + NOTIFICATION_TRANSITION_MS)
+
+    this.notificationTimeouts.set(notificationId, [revealTimeout, dismissTimeout, removeTimeout])
+  }
+
+  private updateNotification(
+    notificationId: number,
+    patch: Partial<Pick<NotificationEntry, 'isVisible' | 'isLeaving'>>,
+  ): void {
+    this.notifications.update((notifications) => notifications.map((notification) => {
+      if (notification.id !== notificationId) {
+        return notification
+      }
+
+      return {
+        ...notification,
+        ...patch,
+      }
+    }))
+  }
+
+  private removeNotification(notificationId: number): void {
+    this.clearNotificationTimeouts(notificationId)
+    this.notifications.update((notifications) => notifications.filter((notification) => notification.id !== notificationId))
+  }
+
+  private clearNotifications(): void {
+    for (const notificationId of this.notificationTimeouts.keys()) {
+      this.clearNotificationTimeouts(notificationId)
+    }
+
+    this.notifications.set([])
+  }
+
+  private clearNotificationTimeouts(notificationId: number): void {
+    const timeoutIds = this.notificationTimeouts.get(notificationId)
+
+    if (!timeoutIds) {
+      return
+    }
+
+    for (const timeoutId of timeoutIds) {
+      window.clearTimeout(timeoutId)
+    }
+
+    this.notificationTimeouts.delete(notificationId)
   }
 }

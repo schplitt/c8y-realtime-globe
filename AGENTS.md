@@ -14,13 +14,16 @@
 scripts/
   c8y-script.shared.ts               # Shared Cumulocity credentials, mock device profiles, and script constants
   createDevices.ts                   # Standalone @c8y/client seeding script for mock child devices
+  cleanupSeededDevices.ts            # Removes seeded mock devices created by the helper scripts
   mockMeasurements.ts                # Standalone @c8y/client measurement generator for hierarchy descendants
 src/
   app/
     widget/
       globe-widget.component.ts      # Globe widget view + renderer lifecycle and realtime orchestration
       globe-widget-config.component.ts  # Preview-first config UI for appearance overrides
+      globe-widget-measurement-events.service.ts # Builds queued ripple+notification playback events from realtime measurements
       globe-widget-sources.service.ts   # Runtime target resolution, inventory paging, and position filtering
+      measurement-notification-feed.component.ts # Top-left animated measurement cards with device links and series rows
       missing-position-popover.component.ts # Floating overlay listing devices missing c8y_Position
     app.config.ts                    # App + providers
     app.ts / app.html                # Shell app
@@ -40,7 +43,6 @@ pnpm start      # Start dev server (ng serve)
 pnpm build      # Build plugin (ng build)
 pnpm lint       # Lint with ESLint
 pnpm lint:fix   # Lint and auto-fix
-pnpm exec tsc --noEmit --module nodenext --moduleResolution nodenext scripts/c8y-script.shared.ts scripts/createDevices.ts scripts/mockMeasurements.ts
 ```
 
 ## Code Style
@@ -125,6 +127,8 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
 - **Current config milestone: preview-first appearance tuning only.** The custom config component should stay minimal and focus on renderer appearance overrides that are immediately visible in preview. Do not reintroduce a custom source picker or dashboard-context toggle unless the product direction changes.
 
 - **Styling: utility classes first, inline styles second, never new CSS files.** Always reach for the built-in Cumulocity/Bootstrap utility classes first (spacing, flex, typography, colours). If a specific style is not available as a utility class, use an inline `style` attribute directly on the element. **Never create new `.css` files.** The existing `globe-widget.component.css` is kept only for Angular's component registration and must remain empty.
+
+- **Prefer the documented popover directive for widget overlays.** For compact overlay content inside widgets, use the Cumulocity-supported `popover` directive instead of a custom hover panel. If the widget container clips overflow, use `container="body"`; if the popover contains links or other interactive content, use a template popover with `[outsideClick]="true"` and click triggers.
 
 ### Common Mistakes to Avoid
 

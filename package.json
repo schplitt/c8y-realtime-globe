@@ -42,6 +42,7 @@
     "@c8y/ngx-components": "1023.53.0",
     "@c8y/style": "1023.53.0",
     "@event-globe/ts": "^1.1.0",
+    "dotenv": "catalog:",
     "monaco-editor": "~0.53.0",
     "ngx-bootstrap": "20.0.2",
     "rxjs": "7.8.2",

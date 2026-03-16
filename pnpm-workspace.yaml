@@ -1,14 +1,6 @@
-
+catalog:
+  dotenv: ^17.3.1
 catalogMode: prefer
-
-shellEmulator: true
-
-
-trustPolicy: no-downgrade
-
-overrides:
-  typescript: 5.8.2
-
 
 onlyBuiltDependencies:
   - '@parcel/watcher'
@@ -16,3 +8,9 @@ onlyBuiltDependencies:
   - lmdb
   - msgpackr-extract
 
+overrides:
+  typescript: 5.8.2
+
+shellEmulator: true
+
+trustPolicy: no-downgrade

@@ -14,6 +14,8 @@ import { WidgetConfigService } from '@c8y/ngx-components/context-dashboard'
 import { BehaviorSubject } from 'rxjs'
 import {
   DEFAULT_MEASUREMENT_DEBOUNCE_MS,
+  DEFAULT_MEASUREMENT_QUEUE_SIZE,
+  DEFAULT_NOTIFICATION_CARD_TIMEOUT_MS,
   GLOBE_WIDGET_APPEARANCE_DEFAULTS,
   normalizeHexColor,
 } from '../globe-widget.model'
@@ -36,6 +38,8 @@ type GlobeWidgetAppearanceForm = FormGroup<{
   rippleMaxScale: FormControl<number>
   rippleExpansionSpeed: FormControl<number>
   measurementDebounceMs: FormControl<number>
+  measurementQueueSize: FormControl<number>
+  notificationCardTimeoutMs: FormControl<number>
 }>
 
 function stripDefaultAppearanceValues(
@@ -108,6 +112,12 @@ function createAppearanceForm(): GlobeWidgetAppearanceForm {
       { nonNullable: true },
     ),
     measurementDebounceMs: new FormControl<number>(DEFAULT_MEASUREMENT_DEBOUNCE_MS, {
+      nonNullable: true,
+    }),
+    measurementQueueSize: new FormControl<number>(DEFAULT_MEASUREMENT_QUEUE_SIZE, {
+      nonNullable: true,
+    }),
+    notificationCardTimeoutMs: new FormControl<number>(DEFAULT_NOTIFICATION_CARD_TIMEOUT_MS, {
       nonNullable: true,
     }),
   })
@@ -216,6 +226,35 @@ function createAppearanceForm(): GlobeWidgetAppearanceForm {
             />
           </label>
         </div>
+        <div class="col-xs-12 col-md-4">
+          <label class="d-flex d-col gap-4 text-medium">
+            Queue size
+            <input
+              class="form-control"
+              formControlName="measurementQueueSize"
+              min="1"
+              max="1000"
+              step="1"
+              type="number"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-xs-12 col-md-4">
+          <label class="d-flex d-col gap-4 text-medium">
+            Card timeout
+            <input
+              class="form-control"
+              formControlName="notificationCardTimeoutMs"
+              min="0"
+              max="60000"
+              step="100"
+              type="number"
+            />
+          </label>
+        </div>
         <div class="col-xs-12 col-md-4 d-flex align-items-end">
           <label class="checkbox m-b-0">
             <input formControlName="autoRotate" type="checkbox" />
@@ -259,8 +298,8 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
   }
 
   ngOnInit(): void {
-    this.form.form.setControl('widgetConfig', this.formGroup)
-    this.patchForm(this.config.appearance)
+    this.form.form.addControl('widgetConfig', this.formGroup)
+    this.patchForm(this.config)
     this.pushPreviewConfig()
 
     this.widgetConfigService.currentConfig$
@@ -269,12 +308,12 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
         const widgetConfig = currentConfig?.config as GlobeWidgetConfig | undefined
         this.config = widgetConfig ?? this.config
         this.currentDevice = currentConfig?.device as GlobeWidgetDeviceTarget | undefined
-        this.patchForm(this.config.appearance)
+        this.patchForm(this.config)
         this.pushPreviewConfig()
       })
 
     this.formGroup.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
-      this.pushPreviewConfig()
+      this.syncConfigFromForm()
     })
 
     this.widgetConfigService.addOnBeforeSave((config) => {
@@ -282,7 +321,9 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
         return false
       }
 
-      Object.assign(config, this.buildConfig())
+      const builtConfig = this.buildConfig()
+      this.applyConfig(this.config, builtConfig)
+      this.applyConfig(config as GlobeWidgetConfig, builtConfig)
       return true
     })
   }
@@ -292,7 +333,9 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
     this.form.form.removeControl('widgetConfig')
   }
 
-  private patchForm(appearance: GlobeWidgetAppearanceConfig | undefined): void {
+  private patchForm(config: GlobeWidgetConfig | undefined): void {
+    const appearance = config?.appearance
+
     this.formGroup.patchValue(
       {
         sceneBackgroundColor: appearance?.sceneBackgroundColor ?? '',
@@ -308,7 +351,10 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
           appearance?.rippleMaxScale ?? GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleMaxScale,
         rippleExpansionSpeed:
           appearance?.rippleExpansionSpeed ?? GLOBE_WIDGET_APPEARANCE_DEFAULTS.rippleExpansionSpeed,
-        measurementDebounceMs: this.config.measurementDebounceMs ?? DEFAULT_MEASUREMENT_DEBOUNCE_MS,
+        measurementDebounceMs: config?.measurementDebounceMs ?? DEFAULT_MEASUREMENT_DEBOUNCE_MS,
+        measurementQueueSize: config?.measurementQueueSize ?? DEFAULT_MEASUREMENT_QUEUE_SIZE,
+        notificationCardTimeoutMs:
+          config?.notificationCardTimeoutMs ?? DEFAULT_NOTIFICATION_CARD_TIMEOUT_MS,
       },
       { emitEvent: false },
     )
@@ -318,6 +364,13 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
     this.previewConfig$.next(this.buildConfig())
   }
 
+  private syncConfigFromForm(): void {
+    const builtConfig = this.buildConfig()
+    this.applyConfig(this.config, builtConfig)
+    this.widgetConfigService.updateConfig({ config: { ...builtConfig } })
+    this.previewConfig$.next({ ...builtConfig })
+  }
+
   private buildConfig(): GlobeWidgetConfig {
     const appearance = this.buildAppearanceOverrides()
     const formValue = this.formGroup.getRawValue()
@@ -325,8 +378,18 @@ export class GlobeWidgetConfigComponent implements AfterViewInit, OnDestroy, OnI
     return {
       ...this.config,
       device: this.currentDevice ?? this.config.device,
+      appearance,
       measurementDebounceMs: formValue.measurementDebounceMs,
-      ...(appearance ? { appearance } : {}),
+      measurementQueueSize: formValue.measurementQueueSize,
+      notificationCardTimeoutMs: formValue.notificationCardTimeoutMs,
+    }
+  }
+
+  private applyConfig(target: GlobeWidgetConfig, source: GlobeWidgetConfig): void {
+    Object.assign(target, source)
+
+    if (!source.appearance) {
+      delete target.appearance
     }
   }
 
