@@ -425,10 +425,17 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
     const cancels: Array<() => void> = []
 
     if (notificationLifetimeMs > 0) {
-      const rafHandle = window.requestAnimationFrame(() => {
-        this.updateNotification(notificationId, { isVisible: true })
+      // 2 to let angular first handle the signals and then let the CSS transition trigger after the element is in the DOM
+      let rafHandle2 = 0
+      const rafHandle1 = window.requestAnimationFrame(() => {
+        rafHandle2 = window.requestAnimationFrame(() => {
+          this.updateNotification(notificationId, { isVisible: true })
+        })
       })
-      cancels.push(() => window.cancelAnimationFrame(rafHandle))
+      cancels.push(() => {
+        window.cancelAnimationFrame(rafHandle1)
+        window.cancelAnimationFrame(rafHandle2)
+      })
     }
 
     const dismissTimeout = window.setTimeout(() => {
