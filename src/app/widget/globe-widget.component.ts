@@ -11,7 +11,7 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import type { IManagedObject, IMeasurement } from '@c8y/client'
-import { MeasurementRealtimeService } from '@c8y/ngx-components'
+import { AlertService, MeasurementRealtimeService } from '@c8y/ngx-components'
 import { EventGlobeRenderer } from '@event-globe/ts'
 import type { EventGlobeRendererConfig } from '@event-globe/ts'
 import type { Subscription } from 'rxjs'
@@ -116,7 +116,6 @@ function createRendererConfig(
       <div #globeContainer style="width: 100%; height: 100%;"></div>
     </div>
   `,
-  standalone: true,
   imports: [MeasurementNotificationFeedComponent, MissingPositionPopoverComponent],
   providers: [MeasurementRealtimeService],
 })
@@ -125,6 +124,7 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
   private readonly measurementRealtime = inject(MeasurementRealtimeService)
   private readonly measurementEvents = inject(GlobeWidgetMeasurementEventsService)
   private readonly sourcesService = inject(GlobeWidgetSourcesService)
+  private readonly alertService = inject(AlertService)
   private readonly globeContainer = viewChild.required<ElementRef<HTMLElement>>('globeContainer')
 
   private readonly renderer = signal<EventGlobeRenderer | null>(null)
@@ -135,7 +135,7 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
   protected readonly notifications = signal<NotificationEntry[]>([])
   private readonly pendingMeasurementEvents = signal<QueuedMeasurementPlaybackEvent[]>([])
   private readonly realtimeSubscriptions = new Map<string, Subscription>()
-  private readonly notificationTimeouts = new Map<number, number[]>()
+  private readonly notificationTimeouts = new Map<number, Array<() => void>>()
   private realtimeSubscriptionRenderer: EventGlobeRenderer | null = null
   private notificationIdSequence = 0
   private readonly themeAppearance = signal<Required<GlobeWidgetAppearanceConfig>>(
@@ -271,6 +271,7 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
       }
 
       console.error('Failed to resolve realtime globe sources.', error)
+      this.alertService.danger('Failed to load globe sources. Please check the configuration and try again.')
     }
   }
 
@@ -421,19 +422,26 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
 
     this.notifications.update((notifications) => [nextNotification, ...notifications])
 
-    const revealTimeout = window.setTimeout(() => {
-      this.updateNotification(notificationId, { isVisible: true })
-    }, 16)
+    const cancels: Array<() => void> = []
+
+    if (notificationLifetimeMs > 0) {
+      const rafHandle = window.requestAnimationFrame(() => {
+        this.updateNotification(notificationId, { isVisible: true })
+      })
+      cancels.push(() => window.cancelAnimationFrame(rafHandle))
+    }
 
     const dismissTimeout = window.setTimeout(() => {
       this.updateNotification(notificationId, { isLeaving: true, isVisible: false })
     }, notificationLifetimeMs)
+    cancels.push(() => window.clearTimeout(dismissTimeout))
 
     const removeTimeout = window.setTimeout(() => {
       this.removeNotification(notificationId)
     }, notificationLifetimeMs + NOTIFICATION_TRANSITION_MS)
+    cancels.push(() => window.clearTimeout(removeTimeout))
 
-    this.notificationTimeouts.set(notificationId, [revealTimeout, dismissTimeout, removeTimeout])
+    this.notificationTimeouts.set(notificationId, cancels)
   }
 
   private updateNotification(
@@ -466,14 +474,14 @@ export class GlobeWidgetComponent implements AfterViewInit, OnDestroy {
   }
 
   private clearNotificationTimeouts(notificationId: number): void {
-    const timeoutIds = this.notificationTimeouts.get(notificationId)
+    const cancels = this.notificationTimeouts.get(notificationId)
 
-    if (!timeoutIds) {
+    if (!cancels) {
       return
     }
 
-    for (const timeoutId of timeoutIds) {
-      window.clearTimeout(timeoutId)
+    for (const cancel of cancels) {
+      cancel()
     }
 
     this.notificationTimeouts.delete(notificationId)

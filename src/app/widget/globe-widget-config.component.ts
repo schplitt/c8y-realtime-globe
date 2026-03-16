@@ -272,7 +272,6 @@ function createAppearanceForm(): GlobeWidgetAppearanceForm {
       <c8y-globe-widget [config]="(previewConfig$ | async) ?? fallbackPreviewConfig" [preview]="true" />
     </ng-template>
   `,
-  standalone: true,
   imports: [AsyncPipe, CommonModule, GlobeWidgetComponent, ReactiveFormsModule],
   viewProviders: [{ provide: ControlContainer, useExisting: NgForm }],
 })

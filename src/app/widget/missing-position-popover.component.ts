@@ -62,7 +62,6 @@ import { PopoverModule } from 'ngx-bootstrap/popover'
       </ng-template>
     }
   `,
-  standalone: true,
   imports: [IconDirective, PopoverModule],
 })
 export class MissingPositionPopoverComponent {

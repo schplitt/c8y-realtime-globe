@@ -105,7 +105,6 @@ const MEASUREMENT_VALUE_FORMATTER = new Intl.NumberFormat(undefined, {
       }
     </div>
   `,
-  standalone: true,
   imports: [IconDirective],
 })
 export class MeasurementNotificationFeedComponent {

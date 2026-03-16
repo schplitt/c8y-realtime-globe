@@ -89,7 +89,7 @@ export class GlobeWidgetSourcesService {
   }
 
   private async loadHierarchyTargetIds(target: GlobeWidgetDeviceTarget): Promise<string[]> {
-    const query: QueryObjectRoot = target.c8y_IsDynamicGroup
+    const query: QueryObjectRoot = target.c8y_IsDevice
       ? { id: target.id }
       : { __and: { __isinhierarchyof: target.id, __has: 'c8y_IsDevice' } }
 
