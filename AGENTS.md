@@ -11,11 +11,20 @@
 ## Architecture
 
 ```
+scripts/
+  c8y-script.shared.ts               # Shared Cumulocity credentials, mock device profiles, and script constants
+  createDevices.ts                   # Standalone @c8y/client seeding script for mock child devices
+  cleanupSeededDevices.ts            # Removes seeded mock devices created by the helper scripts
+  mockMeasurements.ts                # Standalone @c8y/client measurement generator for hierarchy descendants
 src/
   app/
     widget/
-      globe-widget.component.ts      # Globe widget view + minimal renderer-backed preview
+      globe-widget.component.ts      # Globe widget view + renderer lifecycle and realtime orchestration
       globe-widget-config.component.ts  # Preview-first config UI for appearance overrides
+      globe-widget-measurement-events.service.ts # Builds queued ripple+notification playback events from realtime measurements
+      globe-widget-sources.service.ts   # Runtime target resolution, inventory paging, and position filtering
+      measurement-notification-feed.component.ts # Top-left animated measurement cards with device links and series rows
+      missing-position-popover.component.ts # Floating overlay listing devices missing c8y_Position
     app.config.ts                    # App + providers
     app.ts / app.html                # Shell app
     globe-widget.model.ts            # GlobeWidgetConfig and appearance config defaults
@@ -119,6 +128,8 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
 
 - **Styling: utility classes first, inline styles second, never new CSS files.** Always reach for the built-in Cumulocity/Bootstrap utility classes first (spacing, flex, typography, colours). If a specific style is not available as a utility class, use an inline `style` attribute directly on the element. **Never create new `.css` files.** The existing `globe-widget.component.css` is kept only for Angular's component registration and must remain empty.
 
+- **Prefer the documented popover directive for widget overlays.** For compact overlay content inside widgets, use the Cumulocity-supported `popover` directive instead of a custom hover panel. If the widget container clips overflow, use `container="body"`; if the popover contains links or other interactive content, use a template popover with `[outsideClick]="true"` and click triggers.
+
 ### Common Mistakes to Avoid
 
 <!-- Add things that have been done wrong before and should be avoided -->
@@ -127,9 +138,10 @@ This section captures project-specific knowledge, tool quirks, and lessons learn
 
 This registry tracks every `.md` file in the repo and its purpose. Never create a new markdown file without updating this table.
 
-| File                     | Purpose                                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------- |
-| `AGENTS.md`              | Technical context, conventions, and guidelines for AI agents working on this project         |
-| `README.md`              | User-facing documentation shown on GitHub                                                    |
-| `ACCEPTANCE_CRITERIA.md` | Full feature requirements, data models, implementation phases, and resolved design decisions |
-| `src/app/README.md`      | In-platform readme shown in the Cumulocity plugin manager                                    |
+| File                          | Purpose                                                                                      |
+| ----------------------------- | -------------------------------------------------------------------------------------------- |
+| `AGENTS.md`                   | Technical context, conventions, and guidelines for AI agents working on this project         |
+| `README.md`                   | User-facing documentation shown on GitHub                                                    |
+| `ACCEPTANCE_CRITERIA.md`      | Full feature requirements, data models, implementation phases, and resolved design decisions |
+| `SESSION_MCP_WIDGET_BUILD.md` | Detailed session record of the AI-assisted widget build and Codex MCP usage                  |
+| `src/app/README.md`           | In-platform readme shown in the Cumulocity plugin manager                                    |
