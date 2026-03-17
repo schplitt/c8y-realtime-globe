@@ -1,4 +1,17 @@
 
+catalogMode: prefer
+shellEmulator: true
+
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - express-rate-limit@8.3.0
+  - semver@6.3.1 || 5.7.2
+  - undici-types@6.21.0
+  - cached-factory@0.1.0
+overrides:
+  typescript: 5.8.2
+
 catalog:
   '@angular/build': ^20.3.18
   '@angular/cdk': ^20.2.14
@@ -27,22 +40,9 @@ catalog:
   tslib: ^2.3.0
   typescript: 5.8.2
   zone.js: ~0.15.0
-catalogMode: prefer
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
   - lmdb
   - msgpackr-extract
 
-overrides:
-  typescript: 5.8.2
-
-shellEmulator: true
-
-trustPolicy: no-downgrade
-trustPolicyExclude:
-  - chokidar@4.0.3
-  - express-rate-limit@8.3.0
-  - semver@6.3.1 || 5.7.2
-  - undici-types@6.21.0
-  - cached-factory@0.1.0
