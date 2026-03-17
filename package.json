@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.31.0",
-  "description": "A Cumulocity dashboard widget that renders a 3D interactive globe and visualises incoming measurements in realtime.",
+  "description": "A Cumulocity dashboard widget that renders a 3D interactive globe and visualizes incoming measurements in realtime.",
   "keywords": [
     "cumulocity",
     "widget",
