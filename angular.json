@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "sample-plugin": {
+    "realtime-globe": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -34,7 +34,7 @@
             "aot": false,
             "main": "src/main.ts",
             "buildOptimizer": false,
-            "outputPath": "dist/sample-plugin",
+            "outputPath": "dist/realtime-globe",
             "allowedCommonJsDependencies": [
               "regenerator-runtime/runtime",
               "@cordobo/qrcode",
@@ -71,10 +71,10 @@
           "builder": "@c8y/devkit:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "sample-plugin:build:production"
+              "buildTarget": "realtime-globe:build:production"
             },
             "development": {
-              "buildTarget": "sample-plugin:build:development"
+              "buildTarget": "realtime-globe:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -105,10 +105,10 @@
           "builder": "@c8y/devkit:deploy",
           "configurations": {
             "production": {
-              "buildTarget": "sample-plugin:build:production"
+              "buildTarget": "realtime-globe:build:production"
             },
             "development": {
-              "buildTarget": "sample-plugin:build:development"
+              "buildTarget": "realtime-globe:build:development"
             }
           },
           "defaultConfiguration": "production"

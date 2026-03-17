@@ -6,7 +6,7 @@
  *
  * If you need more types supported, add them to the d.ts file and add a webpack rule.
  */
-import previewImage from './sample-plugin-pr.png'
+import realtimeGlobePreviewImage from './realtime-globe-pr.png'
 
 // paths can be shared via this module if needed
-export const assetPaths = { previewImage }
+export { realtimeGlobePreviewImage }
