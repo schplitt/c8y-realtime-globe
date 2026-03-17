@@ -1,0 +1,53 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+
+      - name: Rename zips with tag
+        run: |
+          for f in dist/*.zip; do
+            mv "$f" "${f%.zip}-${{ github.ref_name }}.zip"
+          done
+
+      - name: Create GitHub Release (changelog)
+        run: pnpm dlx changelogithub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload zips to release
+        run: gh release upload ${{ github.ref_name }} dist/*.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
